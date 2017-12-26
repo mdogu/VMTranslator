@@ -8,6 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		5A66F5EC1FF25D440062EA29 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A66F5EB1FF25D440062EA29 /* main.swift */; };
+		5A66F5F61FF2603D0062EA29 /* StringExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A66F5F41FF2603D0062EA29 /* StringExtension.swift */; };
+		5A66F5F71FF2603D0062EA29 /* FileHandleExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A66F5F51FF2603D0062EA29 /* FileHandleExtension.swift */; };
+		5AA89A5F1FF2F4A100A4FD7B /* Parser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA89A5E1FF2F4A100A4FD7B /* Parser.swift */; };
+		5AA89A611FF2F4AE00A4FD7B /* CodeWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA89A601FF2F4AE00A4FD7B /* CodeWriter.swift */; };
+		5AA89A631FF2F5F400A4FD7B /* Console.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA89A621FF2F5F400A4FD7B /* Console.swift */; };
+		5AA89A651FF2F99100A4FD7B /* FileManagerExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AA89A641FF2F99100A4FD7B /* FileManagerExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +31,12 @@
 /* Begin PBXFileReference section */
 		5A66F5E81FF25D440062EA29 /* VMTranslator */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = VMTranslator; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A66F5EB1FF25D440062EA29 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		5A66F5F41FF2603D0062EA29 /* StringExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = StringExtension.swift; sourceTree = "<group>"; };
+		5A66F5F51FF2603D0062EA29 /* FileHandleExtension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FileHandleExtension.swift; sourceTree = "<group>"; };
+		5AA89A5E1FF2F4A100A4FD7B /* Parser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Parser.swift; sourceTree = "<group>"; };
+		5AA89A601FF2F4AE00A4FD7B /* CodeWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeWriter.swift; sourceTree = "<group>"; };
+		5AA89A621FF2F5F400A4FD7B /* Console.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Console.swift; sourceTree = "<group>"; };
+		5AA89A641FF2F99100A4FD7B /* FileManagerExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileManagerExtension.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,8 +70,22 @@
 			isa = PBXGroup;
 			children = (
 				5A66F5EB1FF25D440062EA29 /* main.swift */,
+				5AA89A621FF2F5F400A4FD7B /* Console.swift */,
+				5AA89A5E1FF2F4A100A4FD7B /* Parser.swift */,
+				5AA89A601FF2F4AE00A4FD7B /* CodeWriter.swift */,
+				5A66F5F31FF2603D0062EA29 /* Extensions */,
 			);
 			path = VMTranslator;
+			sourceTree = "<group>";
+		};
+		5A66F5F31FF2603D0062EA29 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				5A66F5F41FF2603D0062EA29 /* StringExtension.swift */,
+				5A66F5F51FF2603D0062EA29 /* FileHandleExtension.swift */,
+				5AA89A641FF2F99100A4FD7B /* FileManagerExtension.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -120,7 +146,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AA89A5F1FF2F4A100A4FD7B /* Parser.swift in Sources */,
+				5AA89A631FF2F5F400A4FD7B /* Console.swift in Sources */,
+				5AA89A651FF2F99100A4FD7B /* FileManagerExtension.swift in Sources */,
+				5A66F5F71FF2603D0062EA29 /* FileHandleExtension.swift in Sources */,
+				5A66F5F61FF2603D0062EA29 /* StringExtension.swift in Sources */,
 				5A66F5EC1FF25D440062EA29 /* main.swift in Sources */,
+				5AA89A611FF2F4AE00A4FD7B /* CodeWriter.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -236,9 +268,11 @@
 		5A66F5F01FF25D440062EA29 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = K2DTYA2AVN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
@@ -246,9 +280,11 @@
 		5A66F5F11FF25D440062EA29 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = K2DTYA2AVN;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
