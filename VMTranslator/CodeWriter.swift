@@ -19,6 +19,10 @@ class CodeWriter {
         self.outputFile = try FileHandle(forUpdating: outputFileURL)
     }
     
+    func write(command: Command) {
+        
+    }
+    
     func closeFile() {
         outputFile.closeFile()
     }

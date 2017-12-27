@@ -23,7 +23,7 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
         exit(0)
     }
     inputFiles = [inputURL]
-    outputFileName = inputURL.lastPathComponent.replacingOccurrences(of: ".vm", with: "")
+    outputFileName = inputURL.lastPathComponent.replacingOccurrences(of: ".vm", with: ".asm")
 } else {
     if FileManager.default.isDirectory(url: inputURL) {
         do {
@@ -38,7 +38,7 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
                 exit(0)
             }
             inputFiles = inputs
-            outputFileName = inputURL.lastPathComponent
+            outputFileName = inputURL.lastPathComponent + ".asm"
         } catch {
             Console.error(error.localizedDescription)
             exit(0)
@@ -48,5 +48,22 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
         exit(0)
     }
 }
+
+let workingFolder = inputURL.deletingLastPathComponent()
+let outputURL = workingFolder.appendingPathComponent(outputFileName)
+
+do {
+    let codeWriter = try CodeWriter(outputFileURL: outputURL)
+    for inputFile in inputFiles {
+        let parser = try Parser(inputFileURL: inputFile)
+        parser.codeWriter = codeWriter
+        parser.execute()
+    }
+    codeWriter.closeFile()
+} catch {
+    Console.error(error.localizedDescription)
+    exit(0)
+}
+
 
 
