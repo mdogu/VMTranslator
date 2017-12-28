@@ -11,6 +11,12 @@ import Foundation
 class CodeWriter {
     
     let outputFile: FileHandle
+    var nextUniqueNumber = 0
+    var decoration: String {
+        let value = "$\(nextUniqueNumber)"
+        nextUniqueNumber += 1
+        return value
+    }
     
     init(outputFileURL: URL) throws {
         if FileManager.default.fileExists(atPath: outputFileURL.path) == false {
@@ -19,75 +25,188 @@ class CodeWriter {
         self.outputFile = try FileHandle(forUpdating: outputFileURL)
     }
     
-    func write(command: Command) {
+    func write(command: Command, fileName: String) {
+        let assemblyCommands: String
         switch command {
         case .arithmeticLogical(let instruction):
+            let binary = """
+                    // %@
+                    @SP
+                    AM=M-1
+                    D=M
+                    @SP
+                    A=M-1
+                    %@
+                    """
+            let unary = """
+                    // %@
+                    @SP
+                    A=M-1
+                    %@
+                    """
+            let comp = """
+                    @TRUE%@
+                    M-D;%@
+                    M=-1
+                    @THEN%@
+                    0;JMP
+                    (TRUE%@)
+                    M=0
+                    (THEN%@)
+                    0
+                    """
             switch instruction {
             case .add:
-                break
+                assemblyCommands = String(format: binary, instruction.rawValue, "M=D+M")
             case .sub:
-                break
+                assemblyCommands = String(format: binary, instruction.rawValue, "M=M-D")
             case .neg:
-                break
+                assemblyCommands = String(format: unary, instruction.rawValue, "M=-M")
             case .eq:
-                break
+                let trueDecoration = decoration
+                let thenDecoration = decoration
+                let followup = String(format: comp, trueDecoration, "JEQ", thenDecoration, trueDecoration, thenDecoration)
+                assemblyCommands = String(format: binary, instruction.rawValue, followup)
             case .gt:
-                break
+                let trueDecoration = decoration
+                let thenDecoration = decoration
+                let followup = String(format: comp, trueDecoration, "JGT", thenDecoration, trueDecoration, thenDecoration)
+                assemblyCommands = String(format: binary, instruction.rawValue, followup)
             case .lt:
-                break
+                let trueDecoration = decoration
+                let thenDecoration = decoration
+                let followup = String(format: comp, trueDecoration, "JLT", thenDecoration, trueDecoration, thenDecoration)
+                assemblyCommands = String(format: binary, instruction.rawValue, followup)
             case .and:
-                break
+                assemblyCommands = String(format: binary, instruction.rawValue, "M=D&M")
             case .or:
-                break
+                assemblyCommands = String(format: binary, instruction.rawValue, "M=D|M")
             case .not:
-                break
+                assemblyCommands = String(format: unary, instruction.rawValue, "M=!M")
             }
         case .memoryAccess(let instruction):
             switch instruction {
             case let .push(segment, index):
+                let pushTemplate = """
+                                %@
+                                @SP
+                                M=M+1
+                                A=M-1
+                                M=D
+                                """
+                let dynamicTemplate = """
+                                // push \(segment.rawValue) \(index)
+                                @%@
+                                D=M
+                                @\(index)
+                                A=D+A
+                                D=M
+                                """
+                let fixedTemplate = """
+                                // push \(segment.rawValue) \(index)
+                                @%d
+                                D=A
+                                @\(index)
+                                A=D+A
+                                D=M
+                                """
                 switch segment {
                 case .argument:
-                    break
+                    let beginning = String(format: dynamicTemplate, "ARG")
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 case .local:
-                    break
+                    let beginning = String(format: dynamicTemplate, "LCL")
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 case .statik:
-                    break
+                    let staticTemplate = """
+                                        // push \(segment.rawValue) \(index)
+                                        @\(fileName).\(index)
+                                        D=M
+                                        """
+                    assemblyCommands = String(format: pushTemplate, staticTemplate)
                 case .constant:
-                    break
+                    let constantTemplate = """
+                                        // push \(segment.rawValue) \(index)
+                                        @\(index)
+                                        D=A
+                                        """
+                    assemblyCommands = String(format: pushTemplate, constantTemplate)
                 case .this:
-                    break
+                    let beginning = String(format: dynamicTemplate, "THIS")
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 case .that:
-                    break
+                    let beginning = String(format: dynamicTemplate, "THAT")
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 case .pointer:
-                    break
+                    let beginning = String(format: fixedTemplate, 3)
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 case .temp:
-                    break
+                    let beginning = String(format: fixedTemplate, 5)
+                    assemblyCommands = String(format: pushTemplate, beginning)
                 }
             case let .pop(segment, index):
+                let popTemplate = """
+                                %@
+                                @R13
+                                M=D
+                                @SP
+                                M=M-1
+                                A=M+1
+                                D=M
+                                @R13
+                                A=M
+                                M=D
+                                """
+                let dynamicTemplate = """
+                                // pop \(segment) \(index)
+                                @%@
+                                D=M
+                                @\(index)
+                                D=D+A
+                                """
+                let fixedTemplate = """
+                                // pop \(segment) \(index)
+                                @%d
+                                D=A
+                                @\(index)
+                                D=D+A
+                                """
                 switch segment {
                 case .argument:
-                    break
+                    let beginning = String(format: dynamicTemplate, "ARG")
+                    assemblyCommands = String(format: popTemplate, beginning)
                 case .local:
-                    break
+                    let beginning = String(format: dynamicTemplate, "LCL")
+                    assemblyCommands = String(format: popTemplate, beginning)
                 case .statik:
-                    break
+                    let staticTemplate = """
+                                        // pop \(segment) \(index)
+                                        @\(fileName).\(index)
+                                        D=A
+                                        """
+                    assemblyCommands = String(format: popTemplate, staticTemplate)
                 case .constant:
-                    break
+                    assemblyCommands = ""
                 case .this:
-                    break
+                    let beginning = String(format: dynamicTemplate, "THIS")
+                    assemblyCommands = String(format: popTemplate, beginning)
                 case .that:
-                    break
+                    let beginning = String(format: dynamicTemplate, "THAT")
+                    assemblyCommands = String(format: popTemplate, beginning)
                 case .pointer:
-                    break
+                    let beginning = String(format: fixedTemplate, 3)
+                    assemblyCommands = String(format: popTemplate, beginning)
                 case .temp:
-                    break
+                    let beginning = String(format: fixedTemplate, 5)
+                    assemblyCommands = String(format: popTemplate, beginning)
                 }
             }
         case .programFlow:
-            break
+            assemblyCommands = ""
         case .functionCalling:
-            break
+            assemblyCommands = ""
         }
+        outputFile.write(line: assemblyCommands)
     }
     
     func closeFile() {
