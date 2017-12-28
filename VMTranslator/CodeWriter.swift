@@ -45,15 +45,18 @@ class CodeWriter {
                     %@
                     """
             let comp = """
+                    D=M-D
                     @TRUE%@
-                    M-D;%@
-                    M=-1
+                    D;%@
+                    D=0
                     @THEN%@
                     0;JMP
                     (TRUE%@)
-                    M=0
+                    D=-1
                     (THEN%@)
-                    0
+                    @SP
+                    A=M-1
+                    M=D
                     """
             switch instruction {
             case .add:
@@ -150,8 +153,7 @@ class CodeWriter {
                                 @R13
                                 M=D
                                 @SP
-                                M=M-1
-                                A=M+1
+                                AM=M-1
                                 D=M
                                 @R13
                                 A=M
