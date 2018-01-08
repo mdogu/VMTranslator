@@ -11,6 +11,7 @@ import Foundation
 class CodeWriter {
     
     let outputFile: FileHandle
+    var inputFileName: String!
     var nextUniqueNumber = 0
     var decoration: String {
         let value = "$\(nextUniqueNumber)"
@@ -25,7 +26,7 @@ class CodeWriter {
         self.outputFile = try FileHandle(forUpdating: outputFileURL)
     }
     
-    func write(command: Command, fileName: String) {
+    func write(command: Command) {
         let assemblyCommands: String
         switch command {
         case .arithmeticLogical(let instruction):
@@ -87,9 +88,9 @@ class CodeWriter {
             case .not:
                 assemblyCommands = String(format: unary, instruction.rawValue, "M=!M")
             }
-        case .memoryAccess(let instruction):
+        case let .memoryAccess(instruction, segment, index):
             switch instruction {
-            case let .push(segment, index):
+            case .push:
                 let pushTemplate = """
                                 %@
                                 @SP
@@ -123,7 +124,7 @@ class CodeWriter {
                 case .statik:
                     let staticTemplate = """
                                         // push \(segment.rawValue) \(index)
-                                        @\(fileName).\(index)
+                                        @\(inputFileName).\(index)
                                         D=M
                                         """
                     assemblyCommands = String(format: pushTemplate, staticTemplate)
@@ -147,7 +148,7 @@ class CodeWriter {
                     let beginning = String(format: fixedTemplate, 5)
                     assemblyCommands = String(format: pushTemplate, beginning)
                 }
-            case let .pop(segment, index):
+            case .pop:
                 let popTemplate = """
                                 %@
                                 @R13
@@ -183,7 +184,7 @@ class CodeWriter {
                 case .statik:
                     let staticTemplate = """
                                         // pop \(segment) \(index)
-                                        @\(fileName).\(index)
+                                        @\(inputFileName).\(index)
                                         D=A
                                         """
                     assemblyCommands = String(format: popTemplate, staticTemplate)
@@ -203,10 +204,26 @@ class CodeWriter {
                     assemblyCommands = String(format: popTemplate, beginning)
                 }
             }
-        case .programFlow:
+        case let .programFlow(instruction, label):
             assemblyCommands = ""
-        case .functionCalling:
+            switch instruction {
+            case .label:
+                break
+            case .goto:
+                break
+            case .ifgoto:
+                break
+            }
+        case .functionCalling(let instruction):
             assemblyCommands = ""
+            switch instruction {
+            case let .function(functionName, numberOfLocalVariables):
+                break
+            case let .call(functionName, numberOfArguments):
+                break
+            case .rturn:
+                break
+            }
         }
         outputFile.write(line: assemblyCommands)
     }

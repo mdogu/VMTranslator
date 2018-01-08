@@ -12,7 +12,11 @@ class Parser {
     
     let inputFileName: String
     let inputFile: FileHandle
-    weak var codeWriter: CodeWriter?
+    weak var codeWriter: CodeWriter? {
+        didSet {
+            codeWriter?.inputFileName = inputFileName
+        }
+    }
     
     init(inputFileURL: URL) throws {
         self.inputFileName = inputFileURL.lastPathComponent.replacingOccurrences(of: ".vm", with: "")
@@ -34,24 +38,32 @@ class Parser {
             let command = parts.first!.lowercased()
             switch command {
             case "add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not":
-                let al = Command.ArithmeticLogical(rawValue: command)!
-                codeWriter?.write(command: .arithmeticLogical(al), fileName: inputFileName)
+                guard let cmd = Command.ArithmeticLogical(rawValue: command) else { continue }
+                codeWriter?.write(command: .arithmeticLogical(cmd))
             case "push", "pop":
                 guard parts.count == 3,
+                    let cmd = Command.MemoryAccess(rawValue: command),
                     let segment = Command.MemoryAccess.Segment(rawValue: parts[1]),
                     let index = Int(parts[2]) else { continue }
-                switch command {
-                case "push":
-                    codeWriter?.write(command: .memoryAccess(.push(segment, index)), fileName: inputFileName)
-                case "pop":
-                    codeWriter?.write(command: .memoryAccess(.pop(segment, index)), fileName: inputFileName)
-                default:
-                    break
-                }
+                codeWriter?.write(command: .memoryAccess(cmd, segment, index))
             case "label", "goto", "if-goto":
-                break
-            case "function", "call", "return":
-                break
+                guard parts.count == 2,
+                    let cmd = Command.ProgramFlow(rawValue: command) else { continue }
+                let label = parts[1]
+                codeWriter?.write(command: .programFlow(cmd, label))
+            case "function":
+                guard parts.count == 3,
+                    let numberOfLocalVariables = Int(parts[2]) else { continue }
+                let functionName = parts[1]
+                codeWriter?.write(command: .functionCalling(.function(functionName, numberOfLocalVariables)))
+            case "call":
+                guard parts.count == 3,
+                    let numberOfArguments = Int(parts[2]) else { continue }
+                let functionName = parts[1]
+                codeWriter?.write(command: .functionCalling(.call(functionName, numberOfArguments)))
+            case "return":
+                guard parts.count == 1 else { continue }
+                codeWriter?.write(command: .functionCalling(.rturn))
             default:
                 break
             }
@@ -69,17 +81,26 @@ enum Command {
         case add, sub, neg, eq, gt, lt, and, or, not
     }
     
-    enum MemoryAccess {
+    enum MemoryAccess: String {
         enum Segment: String {
             case argument, local, statik = "static", constant, this, that, pointer, temp
         }
         
-        case push(Segment, Int)
-        case pop(Segment, Int)
+        case push, pop
+    }
+    
+    enum ProgramFlow: String {
+        case label, goto, ifgoto = "if-goto"
+    }
+    
+    enum FunctionCalling {
+        case function(String, Int)
+        case call(String, Int)
+        case rturn
     }
     
     case arithmeticLogical(ArithmeticLogical)
-    case memoryAccess(MemoryAccess)
-    case programFlow
-    case functionCalling
+    case memoryAccess(MemoryAccess, MemoryAccess.Segment, Int)
+    case programFlow(ProgramFlow, String)
+    case functionCalling(FunctionCalling)
 }
