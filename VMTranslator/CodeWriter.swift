@@ -18,12 +18,26 @@ class CodeWriter {
         nextUniqueNumber += 1
         return value
     }
+    var runningFunction: String?
     
     init(outputFileURL: URL) throws {
         if FileManager.default.fileExists(atPath: outputFileURL.path) == false {
             FileManager.default.createFile(atPath: outputFileURL.path, contents: nil, attributes: nil)
         }
         self.outputFile = try FileHandle(forUpdating: outputFileURL)
+        writeInit()
+    }
+    
+    func writeInit() {
+        let bootstrapCode = """
+                            @256
+                            D=A
+                            @SP
+                            M=D
+                            @Sys.init
+                            0;JMP
+                            """
+        outputFile.write(line: bootstrapCode)
     }
     
     func write(command: Command) {
@@ -124,7 +138,7 @@ class CodeWriter {
                 case .statik:
                     let staticTemplate = """
                                         // push \(segment.rawValue) \(index)
-                                        @\(inputFileName).\(index)
+                                        @\(inputFileName!).\(index)
                                         D=M
                                         """
                     assemblyCommands = String(format: pushTemplate, staticTemplate)
@@ -183,8 +197,8 @@ class CodeWriter {
                     assemblyCommands = String(format: popTemplate, beginning)
                 case .statik:
                     let staticTemplate = """
-                                        // pop \(segment) \(index)
-                                        @\(inputFileName).\(index)
+                                        // pop \(segment.rawValue) \(index)
+                                        @\(inputFileName!).\(index)
                                         D=A
                                         """
                     assemblyCommands = String(format: popTemplate, staticTemplate)
@@ -205,24 +219,158 @@ class CodeWriter {
                 }
             }
         case let .programFlow(instruction, label):
-            assemblyCommands = ""
+            let uniqueLabel: String
+            if let functionName = runningFunction {
+                uniqueLabel = "\(functionName)$\(label)"
+            } else {
+                uniqueLabel = label
+            }
             switch instruction {
             case .label:
-                break
+                let assemblyLabel = """
+                                    // label \(label)
+                                    (\(uniqueLabel))
+                                    """
+                assemblyCommands = assemblyLabel
             case .goto:
-                break
+                let jmp = """
+                            // goto \(label)
+                            @\(uniqueLabel)
+                            0;JMP
+                            """
+                assemblyCommands = jmp
             case .ifgoto:
-                break
+                let jne = """
+                            // if-goto \(label)
+                            @SP
+                            AM=M-1
+                            D=M
+                            @\(uniqueLabel)
+                            D;JNE
+                            """
+                assemblyCommands = jne
             }
         case .functionCalling(let instruction):
-            assemblyCommands = ""
             switch instruction {
             case let .function(functionName, numberOfLocalVariables):
-                break
+                runningFunction = functionName
+                var code = """
+                            // function \(functionName) \(numberOfLocalVariables)
+                            (\(functionName))
+                            """
+                let localVarInit = """
+                                    @SP
+                                    M=M+1
+                                    A=M-1
+                                    M=0
+                                    """
+                if numberOfLocalVariables > 0 {
+                    for _ in 1...numberOfLocalVariables {
+                        code += "\n" + localVarInit
+                    }
+                }
+                assemblyCommands = code
             case let .call(functionName, numberOfArguments):
-                break
+                let returnLabel = "RA\(decoration)"
+                let code = """
+                            // call \(functionName) \(numberOfArguments)
+                            @\(returnLabel)
+                            D=A
+                            @SP
+                            M=M+1
+                            A=M-1
+                            M=D
+                            @LCL
+                            D=M
+                            @SP
+                            M=M+1
+                            A=M-1
+                            M=D
+                            @ARG
+                            D=M
+                            @SP
+                            M=M+1
+                            A=M-1
+                            M=D
+                            @THIS
+                            D=M
+                            @SP
+                            M=M+1
+                            A=M-1
+                            M=D
+                            @THAT
+                            D=M
+                            @SP
+                            M=M+1
+                            A=M-1
+                            M=D
+                            @SP
+                            D=M
+                            @\(numberOfArguments)
+                            D=D-A
+                            @5
+                            D=D-A
+                            @ARG
+                            M=D
+                            @SP
+                            D=M
+                            @LCL
+                            M=D
+                            @\(functionName)
+                            0;JMP
+                            (\(returnLabel))
+                            """
+                assemblyCommands = code
             case .rturn:
-                break
+                let code = """
+                        // return
+                        @LCL
+                        D=M
+                        @R14
+                        M=D
+                        @SP
+                        A=M-1
+                        D=M
+                        @ARG
+                        A=M
+                        M=D
+                        @ARG
+                        D=M+1
+                        @SP
+                        M=D
+                        @R14
+                        A=M-1
+                        D=M
+                        @THAT
+                        M=D
+                        @R14
+                        D=M
+                        @2
+                        A=D-A
+                        D=M
+                        @THIS
+                        M=D
+                        @R14
+                        D=M
+                        @3
+                        A=D-A
+                        D=M
+                        @ARG
+                        M=D
+                        @R14
+                        D=M
+                        @4
+                        A=D-A
+                        D=M
+                        @LCL
+                        M=D
+                        @R14
+                        D=M
+                        @5
+                        A=D-A
+                        0;JMP
+                        """
+                assemblyCommands = code
             }
         }
         outputFile.write(line: assemblyCommands)

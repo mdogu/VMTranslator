@@ -16,6 +16,7 @@ guard CommandLine.argc == 2 else {
 let inputURL = URL(fileURLWithPath: CommandLine.arguments[1])
 let inputFiles: [URL]
 let outputFileName: String
+let workingFolder: URL
 
 if inputURL.lastPathComponent.ends(with: ".vm") {
     guard FileManager.default.fileExists(atPath: inputURL.path) else {
@@ -24,6 +25,7 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
     }
     inputFiles = [inputURL]
     outputFileName = inputURL.lastPathComponent.replacingOccurrences(of: ".vm", with: ".asm")
+    workingFolder = inputURL.deletingLastPathComponent()
 } else {
     if FileManager.default.isDirectory(url: inputURL) {
         do {
@@ -39,6 +41,7 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
             }
             inputFiles = inputs
             outputFileName = inputURL.lastPathComponent + ".asm"
+            workingFolder = inputURL
         } catch {
             Console.error(error.localizedDescription)
             exit(0)
@@ -49,7 +52,6 @@ if inputURL.lastPathComponent.ends(with: ".vm") {
     }
 }
 
-let workingFolder = inputURL.deletingLastPathComponent()
 let outputURL = workingFolder.appendingPathComponent(outputFileName)
 
 do {
