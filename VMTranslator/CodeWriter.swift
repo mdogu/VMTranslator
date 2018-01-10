@@ -266,113 +266,144 @@ class CodeWriter {
                                     """
                 if numberOfLocalVariables > 0 {
                     for _ in 1...numberOfLocalVariables {
-                        code += "\n" + localVarInit
+                        code.add(line: localVarInit)
                     }
                 }
                 assemblyCommands = code
             case let .call(functionName, numberOfArguments):
                 let returnLabel = "RA\(decoration)"
-                let code = """
+                var code = """
                             // call \(functionName) \(numberOfArguments)
-                            @\(returnLabel)
-                            D=A
-                            @SP
-                            M=M+1
-                            A=M-1
-                            M=D
-                            @LCL
-                            D=M
-                            @SP
-                            M=M+1
-                            A=M-1
-                            M=D
-                            @ARG
-                            D=M
-                            @SP
-                            M=M+1
-                            A=M-1
-                            M=D
-                            @THIS
-                            D=M
-                            @SP
-                            M=M+1
-                            A=M-1
-                            M=D
-                            @THAT
-                            D=M
-                            @SP
-                            M=M+1
-                            A=M-1
-                            M=D
-                            @SP
-                            D=M
-                            @\(numberOfArguments)
-                            D=D-A
-                            @5
-                            D=D-A
-                            @ARG
-                            M=D
-                            @SP
-                            D=M
-                            @LCL
-                            M=D
-                            @\(functionName)
-                            0;JMP
-                            (\(returnLabel))
                             """
-                assemblyCommands = code
-            case .rturn:
-                let code = """
-                        // return
-                        @LCL
-                        D=M
-                        @R14
-                        M=D
-                        @5
-                        A=D-A
-                        D=M
-                        @R15
-                        M=D
-                        @SP
-                        A=M-1
-                        D=M
-                        @ARG
-                        A=M
-                        M=D
-                        @ARG
-                        D=M+1
-                        @SP
-                        M=D
-                        @R14
-                        A=M-1
-                        D=M
-                        @THAT
-                        M=D
-                        @R14
-                        D=M
-                        @2
-                        A=D-A
-                        D=M
-                        @THIS
-                        M=D
-                        @R14
-                        D=M
-                        @3
-                        A=D-A
-                        D=M
-                        @ARG
-                        M=D
-                        @R14
-                        D=M
-                        @4
-                        A=D-A
-                        D=M
-                        @LCL
-                        M=D
-                        @R15
-                        A=M
+                let pushReturnAddress = """
+                                        @\(returnLabel)
+                                        D=A
+                                        @SP
+                                        M=M+1
+                                        A=M-1
+                                        M=D
+                                        """
+                code.add(line: pushReturnAddress)
+                let pushSegmentTemplate = """
+                                        @%@
+                                        D=M
+                                        @SP
+                                        M=M+1
+                                        A=M-1
+                                        M=D
+                                        """
+                let pushLCL = String(format: pushSegmentTemplate, "LCL")
+                code.add(line: pushLCL)
+                let pushARG = String(format: pushSegmentTemplate, "ARG")
+                code.add(line: pushARG)
+                let pushTHIS = String(format: pushSegmentTemplate, "THIS")
+                code.add(line: pushTHIS)
+                let pushTHAT = String(format: pushSegmentTemplate, "THAT")
+                code.add(line: pushTHAT)
+                let repositionARG = """
+                                    @SP
+                                    D=M
+                                    @\(numberOfArguments)
+                                    D=D-A
+                                    @5
+                                    D=D-A
+                                    @ARG
+                                    M=D
+                                    """
+                code.add(line: repositionARG)
+                let repositionLCL = """
+                                    @SP
+                                    D=M
+                                    @LCL
+                                    M=D
+                                    """
+                code.add(line: repositionLCL)
+                let goto = """
+                        @\(functionName)
                         0;JMP
                         """
+                code.add(line: goto)
+                let returnLabelDeclaration = "(\(returnLabel))"
+                code.add(line: returnLabelDeclaration)
+                
+                assemblyCommands = code
+            case .rturn:
+                var code = """
+                        // return
+                        """
+                let saveFrameAndReturnAddress = """
+                                                @LCL
+                                                D=M
+                                                @R14
+                                                M=D
+                                                @5
+                                                A=D-A
+                                                D=M
+                                                @R15
+                                                M=D
+                                                """
+                code.add(line: saveFrameAndReturnAddress)
+                let repositionReturnValue = """
+                                            @SP
+                                            A=M-1
+                                            D=M
+                                            @ARG
+                                            A=M
+                                            M=D
+                                            """
+                code.add(line: repositionReturnValue)
+                let repositionSP = """
+                                @ARG
+                                D=M+1
+                                @SP
+                                M=D
+                                """
+                code.add(line: repositionSP)
+                let restoreTHAT = """
+                                @R14
+                                A=M-1
+                                D=M
+                                @THAT
+                                M=D
+                                """
+                code.add(line: restoreTHAT)
+                let restoreTHIS = """
+                                @R14
+                                D=M
+                                @2
+                                A=D-A
+                                D=M
+                                @THIS
+                                M=D
+                                """
+                code.add(line: restoreTHIS)
+                let restoreARG = """
+                                @R14
+                                D=M
+                                @3
+                                A=D-A
+                                D=M
+                                @ARG
+                                M=D
+                                """
+                code.add(line: restoreARG)
+                let restoreLCL = """
+                                @R14
+                                D=M
+                                @4
+                                A=D-A
+                                D=M
+                                @LCL
+                                M=D
+                                """
+                code.add(line: restoreLCL)
+                let gotoReturnAddress = """
+                                        @R15
+                                        A=M
+                                        0;JMP
+                                        """
+                code.add(line: gotoReturnAddress)
+                
                 assemblyCommands = code
             }
         }

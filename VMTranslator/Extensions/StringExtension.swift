@@ -23,6 +23,10 @@ extension String {
         return String(self[index...])
     }
     
+    mutating func add(line: String) {
+        self += "\n" + line
+    }
+    
     init(_ value: Int, radix: Int, length: Int) {
         let binary = String(value, radix: radix)
         if binary.count <= length {
