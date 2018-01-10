@@ -30,14 +30,14 @@ class CodeWriter {
     
     func writeInit() {
         let bootstrapCode = """
+                            // Bootstrap
                             @256
                             D=A
                             @SP
                             M=D
-                            @Sys.init
-                            0;JMP
                             """
         outputFile.write(line: bootstrapCode)
+        write(command: .functionCalling(.call("Sys.init", 0)))
     }
     
     func write(command: Command) {
@@ -328,6 +328,11 @@ class CodeWriter {
                         D=M
                         @R14
                         M=D
+                        @5
+                        A=D-A
+                        D=M
+                        @R15
+                        M=D
                         @SP
                         A=M-1
                         D=M
@@ -364,10 +369,8 @@ class CodeWriter {
                         D=M
                         @LCL
                         M=D
-                        @R14
-                        D=M
-                        @5
-                        A=D-A
+                        @R15
+                        A=M
                         0;JMP
                         """
                 assemblyCommands = code
